@@ -1,5 +1,8 @@
 package com.example.retrofittest;
 
+import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -18,7 +21,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
     MyRecyclerViewAdapter adapter;
-    ArrayList<String> heroList = new ArrayList<>();
+    List<Hero> heroList;
+    RecyclerView recyclerView;
 
     public MainActivity() {
     }
@@ -27,37 +31,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        getHeroes();
+        recyclerView = findViewById(R.id.my_recycler_view);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        HeroViewModel model = ViewModelProviders.of(this).get(HeroViewModel.class);
 
-
-    }
-
-    private void getHeroes(){
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(Api.BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        Api api = retrofit.create(Api.class);
-        Call<List<Hero>> call = api.getHeroes();
-        call.enqueue(new Callback<List<Hero>>() {
+        model.getHeroes().observe(this, new Observer<List<Hero>>() {
             @Override
-            public void onResponse(Call<List<Hero>> call, Response<List<Hero>> response) {
-                List<Hero> heroes = response.body();
-                for (int i = 0; i < heroes.size(); i++) {
-                    heroList.add(heroes.get(i).getName());
-                    //Log.d("Hero:", heroList.get(i));
-                }
-                // set up the RecyclerView
-                RecyclerView recyclerView = findViewById(R.id.my_recycler_view);
-                recyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
-                adapter = new MyRecyclerViewAdapter(getApplicationContext(), heroList);
+            public void onChanged(@Nullable List<Hero> heroList) {
+                adapter = new MyRecyclerViewAdapter(MainActivity.this, heroList);
                 recyclerView.setAdapter(adapter);
-            }
-
-
-            @Override
-            public void onFailure(Call<List<Hero>> call, Throwable t) {
-                Toast.makeText(MainActivity.this, "", Toast.LENGTH_SHORT).show();
             }
         });
     }
